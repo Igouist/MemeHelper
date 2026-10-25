@@ -1,0 +1,15 @@
+[Unit]
+Description=MemeHelper Telegram bot and admin API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+ExecStart=%h/Apps/MemeHelper/MemeHelper.Api
+WorkingDirectory=%h/Apps/MemeHelper
+Restart=always
+RestartSec=10
+TimeoutStopSec=60
+
+[Install]
+WantedBy=default.target

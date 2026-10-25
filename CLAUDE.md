@@ -34,4 +34,5 @@ dotnet format --verify-no-changes   # 命名與 this. 等規則只有這條會�
 ## 執行注意
 
 - 同一個 bot token 同時只能有一個程序 polling。在開發機跑之前，先確認設備上的服務已停，或改用測試 bot。
-- 正式服務跑在 publish 出來的 `~/Apps/MemeHelper/`，與 clone 目錄分離。改了程式碼要 publish 才生效。
+- 正式服務跑在 publish 出來的 `~/Apps/MemeHelper/`，與 clone 目錄分離。改了程式碼要 publish 才生效，步驟在 README「部署」。
+- 看正式服務 log：`journalctl --user -u memehelper -f`。別自己 `systemctl --user stop` 正在服務的程序，先問使用者。
