@@ -16,6 +16,7 @@ builder.Services.AddMemeHelperOptions(builder.Configuration);
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<IDbConnectionFactory, SqliteConnectionFactory>();
 builder.Services.AddSingleton<DatabaseMigrator>();
+builder.Services.AddSingleton<IMemeRepository, SqliteMemeRepository>();
 
 var app = builder.Build();
 
