@@ -2,6 +2,9 @@ using MemeHelper.Api.Configuration;
 using MemeHelper.Api.Database;
 using MemeHelper.Api.Features.Memes;
 using MemeHelper.Api.Features.Search;
+using MemeHelper.Api.Telegram;
+using Microsoft.Extensions.Options;
+using Telegram.Bot;
 
 // 以組件所在目錄為工作目錄，否則 Data/ 與 appsettings 這類相對路徑會跟著
 // 啟動位置跑（systemd 會繼承啟動它的環境）。
@@ -21,6 +24,12 @@ builder.Services.AddSingleton<DatabaseMigrator>();
 builder.Services.AddSingleton<IMemeRepository, SqliteMemeRepository>();
 builder.Services.AddSingleton<MemeSearch>();
 builder.Services.AddSingleton<IImageStore, FileSystemImageStore>();
+
+builder.Services.AddSingleton<ITelegramBotClient>(sp =>
+    new TelegramBotClient(sp.GetRequiredService<IOptions<TelegramOptions>>().Value.BotToken));
+builder.Services.AddSingleton<IBotMessenger, TelegramBotMessenger>();
+builder.Services.AddSingleton<MemeBotHandler>();
+builder.Services.AddHostedService<TelegramPollingService>();
 
 builder.Services.AddProblemDetails();
 builder.Services.AddEndpointsApiExplorer();
