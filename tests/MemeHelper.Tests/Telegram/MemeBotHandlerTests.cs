@@ -4,7 +4,7 @@ using MemeHelper.Api.Features.Memes;
 using MemeHelper.Api.Features.Search;
 using MemeHelper.Api.Telegram;
 using MemeHelper.Tests.Support;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
@@ -32,6 +32,7 @@ public class MemeBotHandlerTests
     private readonly IMemeRepository repository = Substitute.For<IMemeRepository>();
     private readonly IImageStore images = Substitute.For<IImageStore>();
     private readonly IBotMessenger messenger = Substitute.For<IBotMessenger>();
+    private readonly RecordingLogger<MemeBotHandler> log = new();
 
     public MemeBotHandlerTests()
     {
@@ -298,7 +299,38 @@ public class MemeBotHandlerTests
         messenger,
         Options.Create(new TelegramOptions { BotToken = "x", AllowedUserIds = [Me] }),
         Options.Create(new SearchOptions { MaxListResults = 20 }),
-        NullLogger<MemeBotHandler>.Instance);
+        log);
+
+    [Fact]
+    public async Task HandleTextAsync_查詢_應記錄查詢文字與命中數()
+    {
+        await Handler().HandleTextAsync(Me, Chat, "六點", Ct);
+
+        log.Has(LogLevel.Information, "六點").Should().BeTrue();
+        log.Has(LogLevel.Information, "2 張").Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task HandleTextAsync_以file_id回圖_應記錄編號與方式()
+    {
+        library[2] = library[2] with { TelegramFileId = "CACHED" };
+
+        await Handler().HandleTextAsync(Me, Chat, "3", Ct);
+
+        log.Has(LogLevel.Information, "file_id").Should().BeTrue();
+        log.Entries.Should().Contain(e => e.Level == LogLevel.Information && e.Message.Contains("3", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task HandleImageAsync_新增成功_應記錄編號與關鍵字()
+    {
+        ArrangeAdd("六點", "下班");
+
+        await Handler().HandleImageAsync(Me, Chat, "PHOTO_ID", null, isPhoto: true, "六點,下班", Ct);
+
+        log.Has(LogLevel.Information, "7").Should().BeTrue();
+        log.Has(LogLevel.Information, "六點,下班").Should().BeTrue();
+    }
 
     private static Meme Meme(int id, bool enabled, string? fileId, params string[] keywords) =>
         new(id, "png", enabled, fileId, keywords, Now, Now);

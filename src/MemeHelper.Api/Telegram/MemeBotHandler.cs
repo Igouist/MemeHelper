@@ -35,6 +35,7 @@ public sealed class MemeBotHandler(
         if (int.TryParse(trimmed, NumberStyles.None, CultureInfo.InvariantCulture, out var id)
             && await repository.GetAsync(id, ct) is { IsEnabled: true } byId)
         {
+            logger.LogInformation("使用者 {UserId} 以編號 {Id} 取圖", userId, id);
             await SendMemeAsync(chatId, byId, ct);
             return;
         }
@@ -46,6 +47,7 @@ public sealed class MemeBotHandler(
         }
 
         var found = await search.FindAsync(trimmed, includeDisabled: false, ct);
+        logger.LogInformation("使用者 {UserId} 查詢「{Query}」命中 {Count} 張", userId, trimmed, found.Count);
         switch (found.Count)
         {
             case 0:
@@ -133,6 +135,9 @@ public sealed class MemeBotHandler(
         }
 
         var meme = await repository.GetAsync(id, ct);
+        logger.LogInformation(
+            "使用者 {UserId} 從 Telegram 新增編號 {Id}：{Keywords}（{Kind}）",
+            userId, id, string.Join(",", keywords), isPhoto ? "照片" : "檔案");
         await messenger.SendTextAsync(chatId, ReplyFormatter.FormatAdded(meme!), ct);
     }
 
@@ -143,6 +148,7 @@ public sealed class MemeBotHandler(
             try
             {
                 await messenger.SendPhotoByFileIdAsync(chatId, fileId, ct);
+                logger.LogInformation("編號 {Id} 以 file_id 回圖", meme.Id);
                 return;
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
@@ -169,6 +175,7 @@ public sealed class MemeBotHandler(
             }
 
             await repository.SetTelegramFileIdAsync(meme.Id, newFileId, ct);
+            logger.LogInformation("編號 {Id} 上傳回圖並快取 file_id", meme.Id);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
