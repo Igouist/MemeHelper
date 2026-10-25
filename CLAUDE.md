@@ -18,6 +18,8 @@ dotnet test                         # 必須全綠
 dotnet format --verify-no-changes   # 命名與 this. 等規則只有這條會檢查
 ```
 
+本機執行：`dotnet run --project src/MemeHelper.Api`，Swagger UI 在 `http://localhost:5090/swagger`。
+
 ## 慣例
 
 - 對話與文件用台灣繁體中文；程式碼、識別字用英文。Commit 訊息是英文 type 加一句中文結論，type 限 `feat`、`fix`、`refactor`、`docs`、`test`、`config`、`chore`。內文寫為什麼，尤其是取捨。
