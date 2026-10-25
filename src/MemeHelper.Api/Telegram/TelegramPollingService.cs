@@ -1,4 +1,5 @@
 using Telegram.Bot;
+using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -11,8 +12,15 @@ namespace MemeHelper.Api.Telegram;
 public sealed class TelegramPollingService(
     ITelegramBotClient bot,
     MemeBotHandler handler,
+    TimeProvider clock,
     ILogger<TelegramPollingService> logger) : BackgroundService
 {
+    /// <summary>ReceiveAsync 整個失敗（例如開機時網路還沒好、token 無效）後，隔多久重新開始。</summary>
+    private static readonly TimeSpan RestartDelay = TimeSpan.FromSeconds(10);
+
+    /// <summary>單次 getUpdates 失敗後的退避。Telegram.Bot 失敗後會立刻重試（實測約 0.2 秒一次），斷網時要自己放慢。</summary>
+    private static readonly TimeSpan ErrorBackoff = TimeSpan.FromSeconds(5);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var options = new ReceiverOptions
@@ -22,8 +30,26 @@ public sealed class TelegramPollingService(
             DropPendingUpdates = true,
         };
 
-        logger.LogInformation("Telegram long polling 開始");
-        await bot.ReceiveAsync(HandleUpdateAsync, HandleErrorAsync, options, stoppingToken);
+        // DropPendingUpdates 的第一次 getUpdates 不在 Telegram.Bot 的錯誤處理迴圈內，失敗會直接從
+        // ReceiveAsync 拋出。不接住的話 BackgroundService 會停掉整個 host，連區網後台一起死，
+        // 所以這裡自己重試：polling 壞了只影響 bot，後台照常。
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                logger.LogInformation("Telegram long polling 開始");
+                await bot.ReceiveAsync(HandleUpdateAsync, HandleErrorAsync, options, stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Telegram polling 中斷，{Delay} 秒後重新開始", RestartDelay.TotalSeconds);
+                await Task.Delay(RestartDelay, clock, stoppingToken);
+            }
+        }
     }
 
     private async Task HandleUpdateAsync(ITelegramBotClient _, Update update, CancellationToken ct)
@@ -45,10 +71,12 @@ public sealed class TelegramPollingService(
         }
     }
 
-    private Task HandleErrorAsync(ITelegramBotClient _, Exception exception, CancellationToken ct)
+    private async Task HandleErrorAsync(ITelegramBotClient _, Exception exception, CancellationToken ct)
     {
-        // Telegram.Bot 會自己重試，這裡只記錄。
         logger.LogError(exception, "Telegram polling 發生錯誤");
-        return Task.CompletedTask;
+        if (exception is RequestException)
+        {
+            await Task.Delay(ErrorBackoff, clock, ct);
+        }
     }
 }

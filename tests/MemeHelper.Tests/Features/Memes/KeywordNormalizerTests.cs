@@ -35,6 +35,12 @@ public class KeywordNormalizerTests
     }
 
     [Fact]
+    public void Normalize_單一字串含全形逗號_應切成多個關鍵字()
+    {
+        KeywordNormalizer.Normalize(["六點，下班"]).Should().Equal("六點", "下班");
+    }
+
+    [Fact]
     public void Normalize_混合來源_應保留首次出現順序()
     {
         KeywordNormalizer.Normalize([" 下班 ,,下班,Hello,hello"]).Should().Equal("下班", "Hello");
