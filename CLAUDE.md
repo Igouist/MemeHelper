@@ -6,7 +6,7 @@
 
 - `docs/design.md`：需求、規則、資料模型、API、沿用的慣例。改功能先改這裡，再改程式。
 - `docs/features/*.feature`：使用場景（Gherkin，zh-TW），純文件。新功能或改行為先補場景，xUnit 測試以場景名稱對照。
-- `docs/adr/`：決策與理由。新增前先確認符合「難以逆轉、沒脈絡會覺得奇怪、真的有取捨」三條件，格式見 `.claude/skills/domain-modeling/ADR-FORMAT.md`。
+- `docs/adr/`：決策與理由。新增前先確認符合「難以逆轉、沒脈絡會覺得奇怪、真的有取捨」三條件。格式：標題加一到三句脈絡與決定，需要時再加「放棄的選項」與「後果」。
 - `docs/research/azure-hosting-options.md`：Azure 方案的調查，已廢案，只供日後參考。
 - `old_project_sample/`：不入 git，clone 下來不會有。若存在，裡面是同機另一個 .NET 服務的程式碼，部署、systemd、DbUp、SQLite 的寫法從那裡沿用。
 
@@ -26,7 +26,7 @@ dotnet format --verify-no-changes   # 命名與 this. 等規則只有這條會�
 - 設定一律透過 `IOptions<T>`。祕密只放 `appsettings.Local.json`，範本是 `appsettings.Local.json.example`。
 - 資料存取用 Dapper 手寫 SQL，一律以 `CommandDefinition` 傳 cancellation token。Schema 是 `Migrations/` 下的編號 SQL 檔，DbUp 啟動時套用；已執行過的 script 不可修改，一律新增檔案。
 - 一個 endpoint 一個檔案，放在 `Features/<功能>/`。搜尋比對邏輯只存在 `Features/Search`，Telegram 與 API 共用。
-- 測試：xUnit、AutoFixture、NSubstitute、AwesomeAssertions。先寫失敗的測試再寫實作。細節看 `.claude/skills/dotnet-testing-*/`。
+- 測試：xUnit、AutoFixture、NSubstitute、AwesomeAssertions。先寫失敗的測試再寫實作，測試方法用「方法_情境_預期」三段式中文命名。
 - 時間用注入的 `TimeProvider`，不直接呼叫 `DateTime.Now`。
 
 ## 絕對不要 stage 的東西

@@ -499,3 +499,6 @@ old_project_sample/
 
 # SDD scratch workspace (ledger, briefs); git history is the record
 .superpowers/
+
+# Local agent skills, not part of the project
+.claude/
