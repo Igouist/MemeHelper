@@ -32,8 +32,7 @@ public class TelegramPollingServiceTests
 
         await service.StartAsync(cts.Token);
         WaitForCalls(1);
-        clock.Advance(TimeSpan.FromSeconds(10));
-        WaitForCalls(2);
+        AdvanceUntilCalls(2, TimeSpan.FromSeconds(10));
         await cts.CancelAsync();
         await service.StopAsync(CancellationToken.None);
 
@@ -59,8 +58,7 @@ public class TelegramPollingServiceTests
         WaitForCalls(2);
         await Task.Delay(200, TestContext.Current.CancellationToken);
         var beforeAdvance = CallCount();
-        clock.Advance(TimeSpan.FromSeconds(5));
-        WaitForCalls(beforeAdvance + 1);
+        AdvanceUntilCalls(beforeAdvance + 1, TimeSpan.FromSeconds(5));
         await cts.CancelAsync();
         await service.StopAsync(CancellationToken.None);
 
@@ -89,4 +87,17 @@ public class TelegramPollingServiceTests
 
     private void WaitForCalls(int count) =>
         SpinWait.SpinUntil(() => CallCount() >= count, WaitLimit).Should().BeTrue($"expected at least {count} SendRequest calls");
+
+    /// <summary>
+    /// 服務要等例外進到 catch 才會向假時鐘註冊計時器，單次 Advance 可能搶在它之前而永遠不觸發，
+    /// 所以邊等邊推進：計時器晚建立也會被下一次推進叫醒。
+    /// </summary>
+    private void AdvanceUntilCalls(int count, TimeSpan step) =>
+        SpinWait.SpinUntil(
+            () =>
+            {
+                clock.Advance(step);
+                return CallCount() >= count;
+            },
+            WaitLimit).Should().BeTrue($"expected at least {count} SendRequest calls after advancing the clock");
 }
