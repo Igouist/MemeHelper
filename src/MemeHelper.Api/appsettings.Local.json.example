@@ -1,0 +1,6 @@
+{
+  "Telegram": {
+    "BotToken": "1234567:AAxxxx",
+    "AllowedUserIds": [ 123456789 ]
+  }
+}
