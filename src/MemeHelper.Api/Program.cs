@@ -1,5 +1,6 @@
 using MemeHelper.Api.Configuration;
 using MemeHelper.Api.Database;
+using MemeHelper.Api.Features.Search;
 
 // 以組件所在目錄為工作目錄，否則 Data/ 與 appsettings 這類相對路徑會跟著
 // 啟動位置跑（systemd 會繼承啟動它的環境）。
@@ -17,6 +18,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<IDbConnectionFactory, SqliteConnectionFactory>();
 builder.Services.AddSingleton<DatabaseMigrator>();
 builder.Services.AddSingleton<IMemeRepository, SqliteMemeRepository>();
+builder.Services.AddSingleton<MemeSearch>();
 
 var app = builder.Build();
 
