@@ -41,6 +41,18 @@ public class KeywordNormalizerTests
     }
 
     [Fact]
+    public void Normalize_單一字串含頓號_應切成多個關鍵字()
+    {
+        KeywordNormalizer.Normalize(["六點、下班、蟹老闆"]).Should().Equal("六點", "下班", "蟹老闆");
+    }
+
+    [Fact]
+    public void Normalize_三種分隔符號混用_應全部切開()
+    {
+        KeywordNormalizer.Normalize(["六點,下班，蟹老闆、章魚哥"]).Should().Equal("六點", "下班", "蟹老闆", "章魚哥");
+    }
+
+    [Fact]
     public void Normalize_混合來源_應保留首次出現順序()
     {
         KeywordNormalizer.Normalize([" 下班 ,,下班,Hello,hello"]).Should().Equal("下班", "Hello");

@@ -9,7 +9,7 @@ public static class ReplyFormatter
     public const string Help = "傳關鍵字找梗圖，多個詞用空白隔開；命中多張時會列清單，再傳編號取圖。";
     public const string ImageMissing = "圖片檔不見了，請到後台檢查編號 {0}";
     public const string SendFailed = "送圖失敗，請稍後再試";
-    public const string UploadNeedsKeywords = "請在圖片的說明文字填關鍵字，用逗號隔開";
+    public const string UploadNeedsKeywords = "請在圖片的說明文字填關鍵字，用逗號或頓號隔開";
     public const string UploadUnsupportedType = "只接受 jpg 或 png";
     public const string UploadTooLarge = "檔案超過 10 MB";
     public const string UploadBadContent = "檔案內容不是 {0}";
