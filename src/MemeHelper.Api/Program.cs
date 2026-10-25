@@ -22,11 +22,20 @@ builder.Services.AddSingleton<IMemeRepository, SqliteMemeRepository>();
 builder.Services.AddSingleton<MemeSearch>();
 builder.Services.AddSingleton<IImageStore, FileSystemImageStore>();
 
+builder.Services.AddProblemDetails();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 var app = builder.Build();
 
 app.Services.GetRequiredService<DatabaseMigrator>().Migrate();
 
-app.MapGet("/health", () => Results.Ok());
+app.UseExceptionHandler();
+// Swagger UI 就是第一版的管理後台，服務只在區網，所以不分環境一律開。
+app.UseSwagger();
+app.UseSwaggerUI();
+
+app.MapMemeEndpoints();
 
 app.Run();
 
