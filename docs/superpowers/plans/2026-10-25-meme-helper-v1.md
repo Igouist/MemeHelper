@@ -102,7 +102,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 - [ ] **Step 4: 複製 `.editorconfig`**
 
-從 同機既有 .NET 服務的 `.editorconfig` 整份複製。若拿不到，`dotnet new editorconfig` 後套用檔頭註解列的五項修改（using 不分組、`insert_final_newline = true`、私有欄位 `camelCase` 無底線、偏好 `var`、已遵守的規則升為 warning）。
+從同機既有 .NET 服務的 `.editorconfig` 整份複製。若拿不到，`dotnet new editorconfig` 後套用檔頭註解列的五項修改（using 不分組、`insert_final_newline = true`、私有欄位 `camelCase` 無底線、偏好 `var`、已遵守的規則升為 warning）。
 
 - [ ] **Step 5: 建立 API 專案**
 
