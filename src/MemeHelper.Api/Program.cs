@@ -1,5 +1,6 @@
 using MemeHelper.Api.Configuration;
 using MemeHelper.Api.Database;
+using MemeHelper.Api.Features.Memes;
 using MemeHelper.Api.Features.Search;
 
 // 以組件所在目錄為工作目錄，否則 Data/ 與 appsettings 這類相對路徑會跟著
@@ -19,6 +20,7 @@ builder.Services.AddSingleton<IDbConnectionFactory, SqliteConnectionFactory>();
 builder.Services.AddSingleton<DatabaseMigrator>();
 builder.Services.AddSingleton<IMemeRepository, SqliteMemeRepository>();
 builder.Services.AddSingleton<MemeSearch>();
+builder.Services.AddSingleton<IImageStore, FileSystemImageStore>();
 
 var app = builder.Build();
 
