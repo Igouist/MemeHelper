@@ -2,9 +2,13 @@
 
 個人用梗圖搜尋服務。在 Telegram 輸入關鍵字，幾秒內拿到對應的梗圖，再貼到任何聊天軟體。
 
-- 需求與設計：[docs/design.md](docs/design.md)
-- 使用場景：[docs/features/](docs/features/)
-- 決策紀錄：[docs/adr/](docs/adr/)
+## 第一次來？
+
+- [快速上手](docs/guide/getting-started.md)：建 bot、填設定、回第一張圖。
+- [Telegram 怎麼收到訊息](docs/guide/telegram-long-polling.md)：long polling 是什麼、為什麼選它、會踩的坑。
+- [專案架構](docs/guide/architecture.md)：程式怎麼分、一次查詢經過哪些東西、想改東西從哪下手。
+
+更深的文件：[需求與設計](docs/design.md)、[使用場景](docs/features/)、[決策紀錄](docs/adr/)。
 
 ## 怎麼用
 
