@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MemeHelper.Api/MemeHelper.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MemeHelper.Tests/MemeHelper.Tests.csproj" />
+  </Folder>
+</Solution>
