@@ -26,7 +26,7 @@ builder.Services.AddSingleton<MemeSearch>();
 builder.Services.AddSingleton<IImageStore, FileSystemImageStore>();
 
 builder.Services.AddSingleton<ITelegramBotClient>(sp =>
-    new TelegramBotClient(sp.GetRequiredService<IOptions<TelegramOptions>>().Value.BotToken));
+    new LongPollingBotClient(sp.GetRequiredService<IOptions<TelegramOptions>>().Value.BotToken));
 builder.Services.AddSingleton<IBotMessenger, TelegramBotMessenger>();
 builder.Services.AddSingleton<MemeBotHandler>();
 builder.Services.AddHostedService<TelegramPollingService>();
