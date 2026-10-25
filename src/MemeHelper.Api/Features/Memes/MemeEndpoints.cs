@@ -10,6 +10,11 @@ internal static class MemeEndpoints
         ListMemes.Map(group);
         GetMeme.Map(group);
         GetMemeImage.Map(group);
+        AddKeywords.Map(group);
+        RemoveKeyword.Map(group);
+        DisableMeme.Map(group);
+        EnableMeme.Map(group);
+        DeleteMeme.Map(group);
 
         return app;
     }
