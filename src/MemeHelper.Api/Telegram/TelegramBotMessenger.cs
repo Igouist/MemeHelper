@@ -20,4 +20,11 @@ public sealed class TelegramBotMessenger(ITelegramBotClient bot) : IBotMessenger
 
     public Task SendPhotoByFileIdAsync(long chatId, string fileId, CancellationToken ct) =>
         bot.SendPhoto(chatId, InputFile.FromFileId(fileId), cancellationToken: ct);
+
+    public async Task<byte[]> DownloadFileAsync(string fileId, CancellationToken ct)
+    {
+        using var buffer = new MemoryStream();
+        await bot.GetInfoAndDownloadFile(fileId, buffer, ct);
+        return buffer.ToArray();
+    }
 }

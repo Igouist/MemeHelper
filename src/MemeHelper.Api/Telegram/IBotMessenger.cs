@@ -12,4 +12,7 @@ public interface IBotMessenger
     Task<string> SendPhotoFileAsync(long chatId, Stream content, string fileName, CancellationToken ct);
 
     Task SendPhotoByFileIdAsync(long chatId, string fileId, CancellationToken ct);
+
+    /// <summary>下載使用者傳給 bot 的檔案。Telegram 的 getFile 上限 20 MB。</summary>
+    Task<byte[]> DownloadFileAsync(string fileId, CancellationToken ct);
 }

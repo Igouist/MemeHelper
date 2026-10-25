@@ -54,20 +54,32 @@ public sealed class TelegramPollingService(
 
     private async Task HandleUpdateAsync(ITelegramBotClient _, Update update, CancellationToken ct)
     {
-        // 只處理文字；貼圖、圖片等其他訊息一律忽略。
-        if (update.Message is not { Text: { } text, From: { } from, Chat: { } chat })
+        if (update.Message is not { From: { } from, Chat: { } chat } message)
         {
             return;
         }
 
         try
         {
-            await handler.HandleTextAsync(from.Id, chat.Id, text, ct);
+            // 文字是查詢；照片與檔案是新增；貼圖等其他訊息一律忽略。
+            if (message.Text is { } text)
+            {
+                await handler.HandleTextAsync(from.Id, chat.Id, text, ct);
+            }
+            else if (message.Photo is { Length: > 0 } photo)
+            {
+                // 陣列最後一個是最大尺寸。
+                await handler.HandleImageAsync(from.Id, chat.Id, photo[^1].FileId, null, isPhoto: true, message.Caption, ct);
+            }
+            else if (message.Document is { } document)
+            {
+                await handler.HandleImageAsync(from.Id, chat.Id, document.FileId, document.FileName, isPhoto: false, message.Caption, ct);
+            }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             // 單則訊息處理失敗不能讓 polling 停掉。
-            logger.LogError(ex, "處理訊息失敗：{Text}", text);
+            logger.LogError(ex, "處理訊息 {MessageId} 失敗", message.Id);
         }
     }
 
