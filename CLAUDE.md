@@ -26,7 +26,7 @@ dotnet format --verify-no-changes   # 命名與 this. 等規則只有這條會�
 - 設定一律透過 `IOptions<T>`。祕密只放 `appsettings.Local.json`，範本是 `appsettings.Local.json.example`。
 - 資料存取用 Dapper 手寫 SQL，一律以 `CommandDefinition` 傳 cancellation token。Schema 是 `Migrations/` 下的編號 SQL 檔，DbUp 啟動時套用；已執行過的 script 不可修改，一律新增檔案。
 - 一個 endpoint 一個檔案，放在 `Features/<功能>/`。搜尋比對邏輯只存在 `Features/Search`，Telegram 與 API 共用。
-- 測試：xUnit、AutoFixture、NSubstitute、AwesomeAssertions。先寫失敗的測試再寫實作，測試方法用「方法_情境_預期」三段式中文命名。
+- 測試：xUnit、NSubstitute、AwesomeAssertions。先寫失敗的測試再寫實作，測試方法用「方法_情境_預期」三段式中文命名。
 - 時間用注入的 `TimeProvider`，不直接呼叫 `DateTime.Now`。
 
 ## 絕對不要 stage 的東西

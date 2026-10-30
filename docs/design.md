@@ -131,7 +131,7 @@
 | 後台存取 | 綁 `0.0.0.0`，設備在 NAT 後面且不轉埠，所以只有區網與私人 VPN 連得到；不做登入 | 無 |
 | 日誌 | 內建 logging 輸出到 console，由 systemd journal 收集 | 無 |
 | 備份 | 服務內的 hosted service 每天做一次：`VACUUM INTO` 拿資料庫快照，圖片只複製新的 | 無 |
-| 測試 | xUnit、AutoFixture、NSubstitute、AwesomeAssertions，TDD | 無 |
+| 測試 | xUnit、NSubstitute、AwesomeAssertions，TDD | 無 |
 
 備份不用 systemd timer 加 rsync：資料庫開著 WAL，服務執行中直接複製檔案可能拿到不一致的副本。在服務內做可以拿到一致快照，也不必依賴設備上裝 `sqlite3` 或 `rsync`。
 
