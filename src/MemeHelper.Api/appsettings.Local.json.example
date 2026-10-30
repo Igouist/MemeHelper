@@ -3,7 +3,6 @@
     "BotToken": "1234567:AAxxxx",
     "AllowedUserIds": [ 123456789 ]
   },
-  // 填另一顆硬碟、NAS 掛載點或雲端同步資料夾的絕對路徑，例如 /mnt/backup/memehelper。留空就不備份。
   "Backup": {
     "Directory": ""
   }
