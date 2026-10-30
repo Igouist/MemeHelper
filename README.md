@@ -42,7 +42,7 @@ dotnet run --project src/MemeHelper.Api
 
 ## 部署到 Linux 設備（systemd user unit）
 
-1. 確認環境：`dotnet --list-runtimes` 要有 `Microsoft.AspNetCore.App 10.0.x`。
+1. 確認環境：`dotnet --list-sdks` 要有 `10.0.x`。Publish 需要 SDK，只有 runtime 不夠。
 2. Clone 到 `~/Projects/MemeHelper`，建立並填好 `src/MemeHelper.Api/appsettings.Local.json`。`Backup:Directory` 填另一顆硬碟或同步資料夾的絕對路徑，見「備份與還原」。
 3. `dotnet run --project src/MemeHelper.Api` 驗證 bot 會回應，確認後 Ctrl+C。
 4. Publish：

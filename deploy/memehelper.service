@@ -1,7 +1,7 @@
 [Unit]
 Description=MemeHelper Telegram bot and admin API
-After=network-online.target
-Wants=network-online.target
+# 不寫 After=network-online.target：user unit 看不到 system 的 target，寫了也沒作用。
+# 開機時網路還沒好，polling 會自己每 10 秒重試。
 
 [Service]
 Type=notify
