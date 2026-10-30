@@ -264,6 +264,9 @@ Generated_Code/
 # because we have git ;-)
 _UpgradeReport_Files/
 Backup*/
+# 上一條是給 Visual Studio 升級專案的備份資料夾，不是我們的程式碼資料夾。
+!src/MemeHelper.Api/Backup/
+!tests/MemeHelper.Tests/Backup/
 UpgradeLog*.XML
 UpgradeLog*.htm
 ServiceFabricBackup/

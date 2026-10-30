@@ -41,7 +41,7 @@ dotnet run --project src/MemeHelper.Api
 ## 部署到 Linux 設備（systemd user unit）
 
 1. 確認環境：`dotnet --list-runtimes` 要有 `Microsoft.AspNetCore.App 10.0.x`。
-2. Clone 到 `~/Projects/MemeHelper`，建立並填好 `src/MemeHelper.Api/appsettings.Local.json`。
+2. Clone 到 `~/Projects/MemeHelper`，建立並填好 `src/MemeHelper.Api/appsettings.Local.json`。`Backup:Directory` 填另一顆硬碟或同步資料夾的絕對路徑，見「備份與還原」。
 3. `dotnet run --project src/MemeHelper.Api` 驗證 bot 會回應，確認後 Ctrl+C。
 4. Publish：
 
@@ -49,7 +49,7 @@ dotnet run --project src/MemeHelper.Api
    dotnet publish src/MemeHelper.Api -c Release -o ~/Apps/MemeHelper
    ```
 
-   憑證檔會跟著過去。`Data/` 會建立在 `~/Apps/MemeHelper/Data/`，備份這個資料夾就是備份全部。
+   憑證檔會跟著過去。`Data/` 會建立在 `~/Apps/MemeHelper/Data/`，整個系統的狀態都在這裡。
 
 5. 註冊服務：
 
@@ -75,6 +75,35 @@ systemctl --user start memehelper
 ```
 
 Publish 不會動到 `Data/`。同一個 bot token 同時只能有一個程序 polling，開發機要測 bot 之前先停掉設備上的服務。
+
+## 備份與還原
+
+設定 `Backup:Directory` 後，服務每 24 小時把 `Data/` 備份到那裡，啟動時若已超過 24 小時沒備份會先補一次：
+
+```
+<Backup:Directory>/
+  db/memehelper-20261029T030000Z.db   資料庫快照，保留最新 14 份（Backup:KeepCount）
+  images/1.png ...                    圖片只增不刪，刪掉的梗圖也找得回來
+```
+
+路徑要在另一顆硬碟、NAS 掛載點或雲端同步資料夾，放同一顆硬碟防不了硬碟壞掉。成功或失敗都會寫進 log：
+
+```bash
+journalctl --user -u memehelper | grep 備份
+```
+
+還原：
+
+```bash
+systemctl --user stop memehelper
+mkdir -p ~/Apps/MemeHelper/Data/images
+cp <Backup:Directory>/db/memehelper-<時間>.db ~/Apps/MemeHelper/Data/memehelper.db
+rm -f ~/Apps/MemeHelper/Data/memehelper.db-wal ~/Apps/MemeHelper/Data/memehelper.db-shm
+cp -n <Backup:Directory>/images/* ~/Apps/MemeHelper/Data/images/
+systemctl --user start memehelper
+```
+
+`-wal` 與 `-shm` 屬於舊資料庫，留著會蓋過剛還原的快照，一定要刪。
 
 ## 批次匯入
 

@@ -4,9 +4,15 @@ internal static class OptionsRegistration
 {
     public static IServiceCollection AddMemeHelperOptions(this IServiceCollection services, IConfiguration configuration)
     {
-        // 只有 Telegram 區段驗證：其他三個都有可用的預設值，缺了也能跑。
+        // Telegram 缺了就不能跑；Backup 的 KeepCount 填錯會把剛做的快照一起刪掉。
+        // 其他三個區段都有可用的預設值，不驗證。
         services.AddOptions<TelegramOptions>()
             .Bind(configuration.GetSection(TelegramOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddOptions<BackupOptions>()
+            .Bind(configuration.GetSection(BackupOptions.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();
 

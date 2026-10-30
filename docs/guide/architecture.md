@@ -25,7 +25,7 @@
 ```
 src/MemeHelper.Api/
   Program.cs            組裝 DI、跑 migration、掛 endpoint、啟動
-  Configuration/        IOptions 類別（Telegram、Database、Storage、Search）
+  Configuration/        IOptions 類別（Telegram、Database、Storage、Search、Backup）
   Features/Memes/       Meme 模型、KeywordNormalizer、ImageFileRules、FileSystemImageStore
                         以及 UploadMeme、ListMemes、GetMeme、GetMemeImage、AddKeywords、
                         RemoveKeyword、DisableMeme、EnableMeme、DeleteMeme 九個 endpoint
@@ -34,6 +34,7 @@ src/MemeHelper.Api/
   Migrations/           編號 SQL 檔，啟動時套用，已執行過的不可修改
   Telegram/             TelegramPollingService、MemeBotHandler、ReplyFormatter、
                         IBotMessenger 與其 Telegram.Bot 實作、LongPollingBotClient
+  Backup/               DataBackup（快照、複製新圖、清舊快照）、BackupService（每 24 小時排程）
 tests/MemeHelper.Tests/ 對應上述結構；Support/ 放 ApiFactory、TempDatabase 等測試基礎
 deploy/                 systemd unit 範本
 docs/                   設計、場景（Gherkin）、ADR、這份指南
@@ -63,7 +64,7 @@ docs/                   設計、場景（Gherkin）、ADR、這份指南
 - 圖片檔名就是 `{編號}.{副檔名}`，編號自動遞增且不重用。
 - `telegram_file_id` 是快取：Telegram 送過一次的圖可以用這個 ID 重送，不必再上傳。它綁定單一 bot，換 bot 就失效，程式會自動退回上傳並換新的。
 
-整個系統的狀態就是 `Data/` 資料夾，備份它就是備份全部。
+整個系統的狀態就是 `Data/` 資料夾。設定 `Backup:Directory` 後，`BackupService` 每天用 `VACUUM INTO` 拿一份資料庫快照，並把新圖片複製過去；不直接複製資料庫檔，是因為開著 WAL 時那樣可能拿到不一致的副本。
 
 ## 幾個刻意的決定
 

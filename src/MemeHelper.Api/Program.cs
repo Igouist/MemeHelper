@@ -1,3 +1,4 @@
+using MemeHelper.Api.Backup;
 using MemeHelper.Api.Configuration;
 using MemeHelper.Api.Database;
 using MemeHelper.Api.Features.Memes;
@@ -30,6 +31,9 @@ builder.Services.AddSingleton<ITelegramBotClient>(sp =>
 builder.Services.AddSingleton<IBotMessenger, TelegramBotMessenger>();
 builder.Services.AddSingleton<MemeBotHandler>();
 builder.Services.AddHostedService<TelegramPollingService>();
+
+builder.Services.AddSingleton<DataBackup>();
+builder.Services.AddHostedService<BackupService>();
 
 builder.Services.AddProblemDetails();
 builder.Services.AddEndpointsApiExplorer();

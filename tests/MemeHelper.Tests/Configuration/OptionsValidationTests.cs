@@ -37,6 +37,27 @@ public class OptionsValidationTests
         options.MaxListResults.Should().Be(20);
     }
 
+    [Fact]
+    public void AddMemeHelperOptions_未設定Backup區段_應不備份且保留14份()
+    {
+        using var provider = Build();
+
+        var options = provider.GetRequiredService<IOptions<BackupOptions>>().Value;
+
+        options.Directory.Should().BeEmpty();
+        options.KeepCount.Should().Be(14);
+    }
+
+    [Fact]
+    public void AddMemeHelperOptions_KeepCount為0_解析時應拋出OptionsValidationException()
+    {
+        using var provider = Build(("Backup:KeepCount", "0"));
+
+        var act = () => provider.GetRequiredService<IOptions<BackupOptions>>().Value;
+
+        act.Should().Throw<OptionsValidationException>().WithMessage("*KeepCount*");
+    }
+
     private static ServiceProvider Build(params (string Key, string Value)[] settings)
     {
         var configuration = new ConfigurationBuilder()

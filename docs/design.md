@@ -103,6 +103,17 @@
 
 第一版不做批次匯入功能。使用者自行把圖片路徑和關鍵字整理成 CSV，用腳本逐一呼叫上傳 API，先試十張。
 
+### 5.4 自動備份
+
+整個系統的狀態只有 `Data/`，設備硬碟壞了就全沒，所以服務自己定期把它複製到別處。
+
+- 設定 `Backup:Directory` 才啟用；留空就不備份，啟動時記一筆說明。這個路徑應該在另一顆硬碟、NAS 掛載點或雲端同步資料夾，放在同一顆硬碟只防得了誤刪，防不了硬碟壞掉。
+- 每 24 小時一次。每次啟動先看最新快照的時間：從沒備份過或已滿 24 小時就立刻備份，否則等到滿 24 小時。重啟不會多備份一次，也不會把排程往後推。
+- 資料庫：用 `VACUUM INTO` 產生一致的快照，存成 `<Directory>/db/memehelper-<UTC 時間>.db`，只保留最新的 `Backup:KeepCount` 份（預設 14）。
+- 圖片：把 `<Directory>/images/` 還沒有的檔案複製過去，不刪除。編號不重用、圖片也不會原地修改，所以只增不刪是安全的，誤刪的梗圖也能從備份找回來。
+- 失敗時記一筆 Error，一小時後重試，bot 與後台照常運作。
+- 還原：停服務，把要的快照複製成 `Data/memehelper.db` 並刪掉同名的 `-wal`、`-shm`，把備份的 `images/` 複製回 `Data/images/`，再啟動。備份裡多出來、資料庫已不認得的圖檔不影響運作。
+
 ## 6. 技術決策
 
 每項的理由與放棄的替代方案見 `docs/adr/`。
@@ -119,7 +130,10 @@
 | 設定 | `IOptions<T>`；祕密放 `appsettings.Local.json`（不入 git），附 `appsettings.Local.json.example` | 無 |
 | 後台存取 | 綁 `0.0.0.0`，設備在 NAT 後面且不轉埠，所以只有區網與私人 VPN 連得到；不做登入 | 無 |
 | 日誌 | 內建 logging 輸出到 console，由 systemd journal 收集 | 無 |
+| 備份 | 服務內的 hosted service 每天做一次：`VACUUM INTO` 拿資料庫快照，圖片只複製新的 | 無 |
 | 測試 | xUnit、AutoFixture、NSubstitute、AwesomeAssertions，TDD | 無 |
+
+備份不用 systemd timer 加 rsync：資料庫開著 WAL，服務執行中直接複製檔案可能拿到不一致的副本。在服務內做可以拿到一致快照，也不必依賴設備上裝 `sqlite3` 或 `rsync`。
 
 Azure 方案已調查完畢並放棄，內容保留在 `docs/research/azure-hosting-options.md`。
 
@@ -162,7 +176,7 @@ Schema 以編號 SQL 檔內嵌在組件裡，啟動時由 DbUp 套用，DbUp 自
 - 路徑：`<ImageRoot>/<id>.<extension>`，`ImageRoot` 來自設定，預設 `Data/images`。
 - 刪除梗圖時同時刪檔。
 
-整個系統的狀態就是 `Data/` 資料夾（SQLite 檔加圖片）。備份由使用者自行處理。
+整個系統的狀態就是 `Data/` 資料夾（SQLite 檔加圖片）。自動備份見 5.4。
 
 ## 8. 專案配置
 
@@ -179,6 +193,7 @@ src/MemeHelper.Api/
     Search/       比對邏輯，Telegram 與管理 API 共用
   Telegram/       polling hosted service、訊息處理、回覆格式
   Database/       連線工廠、DbUp migrator、Dapper repository
+  Backup/         每日備份：資料庫快照、複製新圖、清舊快照
   Migrations/     編號 SQL 檔，內嵌資源
   appsettings.json
   appsettings.Local.json.example
@@ -213,6 +228,8 @@ docs/
 | `Database:ConnectionString` | 預設 `Data Source=Data/memehelper.db` |
 | `Storage:ImageRoot` | 圖片資料夾，預設 `Data/images` |
 | `Search:MaxListResults` | 清單上限，預設 20 |
+| `Backup:Directory` | 備份資料夾，建議絕對路徑；留空不備份。放 `appsettings.Local.json` |
+| `Backup:KeepCount` | 資料庫快照保留幾份，預設 14，至少 1 |
 
 啟動時驗證 `BotToken` 與 `AllowedUserIds` 都有值，缺了直接啟動失敗並指名欄位。
 
@@ -234,6 +251,8 @@ docs/
 - 日誌不用 Serilog，內建 logging 進 journald 就夠。
 - Schema 用 DbUp 而非手寫 `schema_version`，沿用舊專案已驗證過的做法。
 - Telegram 傳圖只用 caption 當關鍵字，不做「先傳圖再問關鍵字」的兩段式對話，避免記每個聊天的狀態。
+- 備份間隔固定 24 小時，不開成設定；快照數量才是真的需要調的。
+- 備份的圖片只增不刪，代價是刪掉的梗圖圖檔會一直留在備份裡。
 - 第一版上傳不驗證圖片尺寸。Telegram `sendPhoto` 另有寬高相加 10000 以內、長寬比 20 以內的限制，超過的圖片在送圖時才會失敗，屆時回一則錯誤訊息並記 log。不為此多一個影像套件。
 
 ## 12. 留給實作者
