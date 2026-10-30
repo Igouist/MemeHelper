@@ -17,6 +17,9 @@ public static class ReplyFormatter
 
     public static string FormatAdded(Meme meme) => $"已新增【{meme.Id}】{string.Join(",", meme.Keywords)}";
 
+    public static string FormatExists(Meme meme) =>
+        $"已存在【{meme.Id}】{string.Join(",", meme.Keywords)}{(meme.IsEnabled ? "" : "（已停用）")}";
+
     public static string FormatList(IReadOnlyList<Meme> memes, int maxListResults)
     {
         var lines = memes.Take(maxListResults).Select(m => $"【{m.Id}】{string.Join(",", m.Keywords)}");

@@ -26,7 +26,8 @@
 src/MemeHelper.Api/
   Program.cs            組裝 DI、跑 migration、掛 endpoint、啟動
   Configuration/        IOptions 類別（Telegram、Database、Storage、Search、Backup）
-  Features/Memes/       Meme 模型、KeywordNormalizer、ImageFileRules、FileSystemImageStore
+  Features/Memes/       Meme 模型、KeywordNormalizer、ImageFileRules、ContentHash（去重用的 SHA-256）、
+                        ContentHashBackfill（啟動時替舊資料補算）、FileSystemImageStore
                         以及 UploadMeme、ListMemes、GetMeme、GetMemeImage、AddKeywords、
                         RemoveKeyword、DisableMeme、EnableMeme、DeleteMeme 九個 endpoint
   Features/Search/      KeywordMatcher（純函式）、MemeSearch
@@ -55,12 +56,12 @@ docs/                   設計、場景（Gherkin）、ADR、這份指南
 
 兩條路，驗證規則共用：
 
-- **Telegram**：照片或檔案加 caption → `HandleImageAsync` → 下載 → `ImageFileRules` 檢查副檔名、大小、檔頭 → `KeywordNormalizer` 整理 caption → 寫資料庫、存檔 → 照片的 `file_id` 直接當快取。
-- **HTTP**：`POST /api/memes` multipart → 同樣的檢查 → 寫資料庫、存檔。
+- **Telegram**：照片或檔案加 caption → `HandleImageAsync` → 下載 → `ImageFileRules` 檢查副檔名、大小、檔頭 → 以 `ContentHash` 查重，收過的回「已存在【編號】」 → `KeywordNormalizer` 整理 caption → 寫資料庫、存檔 → 照片的 `file_id` 直接當快取。
+- **HTTP**：`POST /api/memes` multipart → 同樣的檢查與查重（重複回 409） → 寫資料庫、存檔。
 
 ## 資料
 
-- `memes`：編號、副檔名、啟用、`telegram_file_id`、時間戳。
+- `memes`：編號、副檔名、啟用、`telegram_file_id`、`content_hash`（內容的 SHA-256，唯一索引）、時間戳。
 - `meme_keywords`：編號對關鍵字，一對多。
 - 圖片檔名就是 `{編號}.{副檔名}`，編號自動遞增且不重用。
 - `telegram_file_id` 是快取：Telegram 送過一次的圖可以用這個 ID 重送，不必再上傳。它綁定單一 bot，換 bot 就失效，程式會自動退回上傳並換新的。
@@ -81,7 +82,7 @@ docs/                   設計、場景（Gherkin）、ADR、這份指南
 
 ## 測試
 
-- **單元**：`KeywordMatcher`、`KeywordNormalizer`、`ImageFileRules`、`IncomingMessage` 是純函式直接測；`MemeBotHandler` 用 NSubstitute 替換 repository、image store、messenger。
+- **單元**：`KeywordMatcher`、`KeywordNormalizer`、`ImageFileRules`、`ContentHash`、`IncomingMessage` 是純函式直接測；`MemeBotHandler` 用 NSubstitute 替換 repository、image store、messenger。
 - **整合**：`ApiFactory` 用 `WebApplicationFactory` 跑真的 Program，資料庫與圖片指到臨時資料夾，並拿掉 polling 的 hosted service，所以不會真的連 Telegram。
 - 測試名稱用三段式中文：`方法_情境_預期`，一個場景對一個測試。
 

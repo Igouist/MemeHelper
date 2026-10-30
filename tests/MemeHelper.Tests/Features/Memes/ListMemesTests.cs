@@ -25,7 +25,7 @@ public sealed class ListMemesTests : IDisposable
     public async Task List_預設_應包含停用的圖()
     {
         var first = await client.UploadOkAsync(SampleImages.Png(), "a.png", "六點", Ct);
-        var second = await client.UploadOkAsync(SampleImages.Png(), "b.png", "海螺", Ct);
+        var second = await client.UploadOkAsync(SampleImages.Jpg(), "b.jpg", "海螺", Ct);
         await factory.Services.GetRequiredService<IMemeRepository>().SetEnabledAsync(second.Id, false, Ct);
 
         var memes = await client.Http.GetFromJsonAsync<List<Meme>>("/api/memes", Ct);
@@ -39,7 +39,7 @@ public sealed class ListMemesTests : IDisposable
     public async Task List_帶keyword_應只回傳命中的圖()
     {
         await client.UploadOkAsync(SampleImages.Png(), "a.png", "六點,下班", Ct);
-        var target = await client.UploadOkAsync(SampleImages.Png(), "b.png", "神奇海螺", Ct);
+        var target = await client.UploadOkAsync(SampleImages.Jpg(), "b.jpg", "神奇海螺", Ct);
 
         var memes = await client.Http.GetFromJsonAsync<List<Meme>>("/api/memes?keyword=海螺", Ct);
 

@@ -11,9 +11,17 @@ public enum RemoveKeywordResult
 
 public interface IMemeRepository
 {
-    Task<int> AddAsync(string extension, IReadOnlyList<string> keywords, CancellationToken ct);
+    /// <summary>contentHash 有唯一索引，重複會拋出例外；呼叫端應先用 FindByContentHashAsync 查。</summary>
+    Task<int> AddAsync(string extension, string contentHash, IReadOnlyList<string> keywords, CancellationToken ct);
 
     Task<Meme?> GetAsync(int id, CancellationToken ct);
+
+    Task<Meme?> FindByContentHashAsync(string contentHash, CancellationToken ct);
+
+    /// <summary>升級前新增、還沒有內容雜湊的梗圖，依編號由小到大。</summary>
+    Task<IReadOnlyList<Meme>> ListWithoutContentHashAsync(CancellationToken ct);
+
+    Task<bool> SetContentHashAsync(int id, string contentHash, CancellationToken ct);
 
     /// <summary>依編號由小到大。</summary>
     Task<IReadOnlyList<Meme>> ListAsync(bool includeDisabled, CancellationToken ct);

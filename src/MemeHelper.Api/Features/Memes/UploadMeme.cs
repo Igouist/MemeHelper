@@ -10,7 +10,8 @@ internal static class UploadMeme
             // 後台只在區網用、沒有登入，antiforgery 沒有東西可以保護，只會擋掉 Swagger UI 的上傳。
             .DisableAntiforgery()
             .Produces<Meme>(StatusCodes.Status201Created)
-            .ProducesValidationProblem();
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status409Conflict);
 
     private static async Task<IResult> Handle(
         IFormFile file,
@@ -37,13 +38,23 @@ internal static class UploadMeme
             return Invalid("file", $"檔案內容不是 {extension}");
         }
 
+        var contentHash = ContentHash.Compute(content.GetBuffer().AsSpan(0, (int)content.Length));
+        if (await repository.FindByContentHashAsync(contentHash, ct) is { } existing)
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "圖片已存在",
+                detail: $"與編號 {existing.Id} 內容相同",
+                extensions: new Dictionary<string, object?> { ["existingId"] = existing.Id });
+        }
+
         var normalized = KeywordNormalizer.Normalize([keywords ?? ""]);
         if (normalized.Count == 0)
         {
             return Invalid("keywords", "至少要一個關鍵字");
         }
 
-        var id = await repository.AddAsync(extension, normalized, ct);
+        var id = await repository.AddAsync(extension, contentHash, normalized, ct);
         try
         {
             content.Position = 0;

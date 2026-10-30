@@ -7,7 +7,7 @@ namespace MemeHelper.Api.Database;
 
 public sealed class SqliteMemeRepository(IDbConnectionFactory connections, TimeProvider clock) : IMemeRepository
 {
-    public async Task<int> AddAsync(string extension, IReadOnlyList<string> keywords, CancellationToken ct)
+    public async Task<int> AddAsync(string extension, string contentHash, IReadOnlyList<string> keywords, CancellationToken ct)
     {
         var now = Timestamp();
         await using var connection = await connections.OpenAsync(ct);
@@ -15,11 +15,11 @@ public sealed class SqliteMemeRepository(IDbConnectionFactory connections, TimeP
 
         var id = await connection.ExecuteScalarAsync<int>(new CommandDefinition(
             """
-            INSERT INTO memes (extension, is_enabled, created_at, updated_at)
-            VALUES (@extension, 1, @now, @now);
+            INSERT INTO memes (extension, content_hash, is_enabled, created_at, updated_at)
+            VALUES (@extension, @contentHash, 1, @now, @now);
             SELECT last_insert_rowid();
             """,
-            new { extension, now },
+            new { extension, contentHash, now },
             transaction,
             cancellationToken: ct));
 
@@ -39,6 +39,30 @@ public sealed class SqliteMemeRepository(IDbConnectionFactory connections, TimeP
     {
         await using var connection = await connections.OpenAsync(ct);
         return await ReadMemesAsync(connection, includeDisabled ? "" : "WHERE m.is_enabled = 1", new { }, ct);
+    }
+
+    public async Task<Meme?> FindByContentHashAsync(string contentHash, CancellationToken ct)
+    {
+        await using var connection = await connections.OpenAsync(ct);
+        var memes = await ReadMemesAsync(connection, "WHERE m.content_hash = @contentHash", new { contentHash }, ct);
+        return memes.SingleOrDefault();
+    }
+
+    public async Task<IReadOnlyList<Meme>> ListWithoutContentHashAsync(CancellationToken ct)
+    {
+        await using var connection = await connections.OpenAsync(ct);
+        return await ReadMemesAsync(connection, "WHERE m.content_hash IS NULL", new { }, ct);
+    }
+
+    public async Task<bool> SetContentHashAsync(int id, string contentHash, CancellationToken ct)
+    {
+        // 不更新 updated_at：補算雜湊是內部整理，不是使用者看得到的內容異動。
+        await using var connection = await connections.OpenAsync(ct);
+        var updated = await connection.ExecuteAsync(new CommandDefinition(
+            "UPDATE memes SET content_hash = @contentHash WHERE id = @id",
+            new { id, contentHash },
+            cancellationToken: ct));
+        return updated == 1;
     }
 
     public async Task<bool> AddKeywordsAsync(int id, IReadOnlyList<string> keywords, CancellationToken ct)

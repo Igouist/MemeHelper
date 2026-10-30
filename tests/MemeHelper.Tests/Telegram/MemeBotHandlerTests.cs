@@ -172,7 +172,7 @@ public class MemeBotHandlerTests
 
         await Handler().HandleImageAsync(Me, Chat, "PHOTO_ID", null, isPhoto: true, "六點,下班", Ct);
 
-        await repository.Received(1).AddAsync("jpg", Arg.Is<IReadOnlyList<string>>(k => k.SequenceEqual(new[] { "六點", "下班" })), Arg.Any<CancellationToken>());
+        await repository.Received(1).AddAsync("jpg", Arg.Any<string>(), Arg.Is<IReadOnlyList<string>>(k => k.SequenceEqual(new[] { "六點", "下班" })), Arg.Any<CancellationToken>());
         await images.Received(1).SaveAsync(7, "jpg", Arg.Any<Stream>(), Arg.Any<CancellationToken>());
         await repository.Received(1).SetTelegramFileIdAsync(7, "PHOTO_ID", Arg.Any<CancellationToken>());
         await messenger.Received(1).SendTextAsync(Chat, "已新增【7】六點,下班", Arg.Any<CancellationToken>());
@@ -186,7 +186,7 @@ public class MemeBotHandlerTests
 
         await Handler().HandleImageAsync(Me, Chat, "DOC_ID", "meme.png", isPhoto: false, "神奇海螺", Ct);
 
-        await repository.Received(1).AddAsync("png", Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>());
+        await repository.Received(1).AddAsync("png", Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>());
         await images.Received(1).SaveAsync(7, "png", Arg.Any<Stream>(), Arg.Any<CancellationToken>());
         await repository.DidNotReceive().SetTelegramFileIdAsync(Arg.Any<int>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
         await messenger.Received(1).SendTextAsync(Chat, "已新增【7】神奇海螺", Arg.Any<CancellationToken>());
@@ -199,7 +199,41 @@ public class MemeBotHandlerTests
 
         await Handler().HandleImageAsync(Me, Chat, "PHOTO_ID", null, isPhoto: true, " 下班 ，，下班,Hello,hello", Ct);
 
-        await repository.Received(1).AddAsync("jpg", Arg.Is<IReadOnlyList<string>>(k => k.SequenceEqual(new[] { "下班", "Hello" })), Arg.Any<CancellationToken>());
+        await repository.Received(1).AddAsync("jpg", Arg.Any<string>(), Arg.Is<IReadOnlyList<string>>(k => k.SequenceEqual(new[] { "下班", "Hello" })), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleImageAsync_圖已存在_應回已存在與既有關鍵字且不新增()
+    {
+        ArrangeExisting(Meme(3, true, null, "神奇海螺", "不行"));
+
+        await Handler().HandleImageAsync(Me, Chat, "PHOTO_ID", null, isPhoto: true, "海螺", Ct);
+
+        await messenger.Received(1).SendTextAsync(Chat, "已存在【3】神奇海螺,不行", Arg.Any<CancellationToken>());
+        await repository.DidNotReceive().AddAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>());
+        await repository.DidNotReceive().AddKeywordsAsync(Arg.Any<int>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>());
+        await images.DidNotReceive().SaveAsync(Arg.Any<int>(), Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleImageAsync_圖已存在但停用_應加註已停用()
+    {
+        ArrangeExisting(Meme(8, false, null, "神奇海螺"));
+
+        await Handler().HandleImageAsync(Me, Chat, "PHOTO_ID", null, isPhoto: true, "海螺", Ct);
+
+        await messenger.Received(1).SendTextAsync(Chat, "已存在【8】神奇海螺（已停用）", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleImageAsync_圖已存在且沒有caption_應回已存在而非提示填關鍵字()
+    {
+        ArrangeExisting(Meme(3, true, null, "神奇海螺", "不行"));
+
+        await Handler().HandleImageAsync(Me, Chat, "PHOTO_ID", null, isPhoto: true, null, Ct);
+
+        await messenger.Received(1).SendTextAsync(Chat, "已存在【3】神奇海螺,不行", Arg.Any<CancellationToken>());
+        await messenger.DidNotReceive().SendTextAsync(Chat, ReplyFormatter.UploadNeedsKeywords, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -208,7 +242,7 @@ public class MemeBotHandlerTests
         await Handler().HandleImageAsync(Me, Chat, "PHOTO_ID", null, isPhoto: true, null, Ct);
 
         await messenger.Received(1).SendTextAsync(Chat, ReplyFormatter.UploadNeedsKeywords, Arg.Any<CancellationToken>());
-        await repository.DidNotReceive().AddAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>());
+        await repository.DidNotReceive().AddAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -217,7 +251,7 @@ public class MemeBotHandlerTests
         await Handler().HandleImageAsync(Me, Chat, "PHOTO_ID", null, isPhoto: true, " , ", Ct);
 
         await messenger.Received(1).SendTextAsync(Chat, ReplyFormatter.UploadNeedsKeywords, Arg.Any<CancellationToken>());
-        await repository.DidNotReceive().AddAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>());
+        await repository.DidNotReceive().AddAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -226,7 +260,7 @@ public class MemeBotHandlerTests
         await Handler().HandleImageAsync(Me, Chat, "DOC_ID", "a.pdf", isPhoto: false, "六點", Ct);
 
         await messenger.Received(1).SendTextAsync(Chat, ReplyFormatter.UploadUnsupportedType, Arg.Any<CancellationToken>());
-        await repository.DidNotReceive().AddAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>());
+        await repository.DidNotReceive().AddAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -237,7 +271,7 @@ public class MemeBotHandlerTests
         await Handler().HandleImageAsync(Me, Chat, "DOC_ID", "a.png", isPhoto: false, "六點", Ct);
 
         await messenger.Received(1).SendTextAsync(Chat, string.Format(ReplyFormatter.UploadBadContent, "png"), Arg.Any<CancellationToken>());
-        await repository.DidNotReceive().AddAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>());
+        await repository.DidNotReceive().AddAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -250,7 +284,7 @@ public class MemeBotHandlerTests
         await Handler().HandleImageAsync(Me, Chat, "DOC_ID", "a.png", isPhoto: false, "六點", Ct);
 
         await messenger.Received(1).SendTextAsync(Chat, ReplyFormatter.UploadTooLarge, Arg.Any<CancellationToken>());
-        await repository.DidNotReceive().AddAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>());
+        await repository.DidNotReceive().AddAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -261,7 +295,7 @@ public class MemeBotHandlerTests
         await Handler().HandleImageAsync(Me, Chat, "PHOTO_ID", null, isPhoto: true, "六點", Ct);
 
         await messenger.Received(1).SendTextAsync(Chat, ReplyFormatter.UploadFailed, Arg.Any<CancellationToken>());
-        await repository.DidNotReceive().AddAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>());
+        await repository.DidNotReceive().AddAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -282,13 +316,20 @@ public class MemeBotHandlerTests
         await Handler().HandleImageAsync(Stranger, Chat, "PHOTO_ID", null, isPhoto: true, "六點", Ct);
 
         messenger.ReceivedCalls().Should().BeEmpty();
-        await repository.DidNotReceive().AddAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>());
+        await repository.DidNotReceive().AddAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>讓「下載到的預設 jpg」查重時命中這張。</summary>
+    private void ArrangeExisting(Meme meme)
+    {
+        library.Add(meme);
+        repository.FindByContentHashAsync(ContentHash.Compute(SampleImages.Jpg()), Arg.Any<CancellationToken>()).Returns(meme);
     }
 
     /// <summary>讓 AddAsync 回傳編號 7，且 GetAsync(7) 讀得到帶這些關鍵字的紀錄。</summary>
     private void ArrangeAdd(params string[] keywords)
     {
-        repository.AddAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>()).Returns(7);
+        repository.AddAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>()).Returns(7);
         library.Add(Meme(7, true, null, keywords));
     }
 

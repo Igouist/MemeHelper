@@ -25,6 +25,7 @@ builder.Services.AddSingleton<DatabaseMigrator>();
 builder.Services.AddSingleton<IMemeRepository, SqliteMemeRepository>();
 builder.Services.AddSingleton<MemeSearch>();
 builder.Services.AddSingleton<IImageStore, FileSystemImageStore>();
+builder.Services.AddSingleton<ContentHashBackfill>();
 
 builder.Services.AddSingleton<ITelegramBotClient>(sp =>
     new LongPollingBotClient(sp.GetRequiredService<IOptions<TelegramOptions>>().Value.BotToken));
@@ -42,6 +43,7 @@ builder.Services.AddSwaggerGen();
 var app = builder.Build();
 
 app.Services.GetRequiredService<DatabaseMigrator>().Migrate();
+await app.Services.GetRequiredService<ContentHashBackfill>().RunAsync(CancellationToken.None);
 
 app.UseExceptionHandler();
 // Swagger UI 就是第一版的管理後台，服務只在區網，所以不分環境一律開。

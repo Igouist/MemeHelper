@@ -56,8 +56,8 @@ public sealed class DataBackupTests : IDisposable
     public async Task RunAsync_寫入還在WAL裡_快照應能開啟且包含所有梗圖()
     {
         var repository = new SqliteMemeRepository(connections, clock);
-        await repository.AddAsync("png", ["六點", "下班"], Ct);
-        await repository.AddAsync("jpg", ["神奇海螺"], Ct);
+        await repository.AddAsync("png", "hash-1", ["六點", "下班"], Ct);
+        await repository.AddAsync("jpg", "hash-2", ["神奇海螺"], Ct);
 
         var result = await Backup().RunAsync(Ct);
 

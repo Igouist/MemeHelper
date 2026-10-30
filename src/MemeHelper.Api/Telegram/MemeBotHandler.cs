@@ -81,13 +81,6 @@ public sealed class MemeBotHandler(
             return;
         }
 
-        var keywords = KeywordNormalizer.Normalize([caption ?? ""]);
-        if (keywords.Count == 0)
-        {
-            await messenger.SendTextAsync(chatId, ReplyFormatter.UploadNeedsKeywords, ct);
-            return;
-        }
-
         byte[] content;
         try
         {
@@ -112,7 +105,23 @@ public sealed class MemeBotHandler(
             return;
         }
 
-        var id = await repository.AddAsync(extension, keywords, ct);
+        // 查重在關鍵字檢查之前：不填 caption 直接傳圖，就能查這張圖收過沒有。
+        var contentHash = ContentHash.Compute(content);
+        if (await repository.FindByContentHashAsync(contentHash, ct) is { } existing)
+        {
+            logger.LogInformation("使用者 {UserId} 傳的圖已存在，編號 {Id}", userId, existing.Id);
+            await messenger.SendTextAsync(chatId, ReplyFormatter.FormatExists(existing), ct);
+            return;
+        }
+
+        var keywords = KeywordNormalizer.Normalize([caption ?? ""]);
+        if (keywords.Count == 0)
+        {
+            await messenger.SendTextAsync(chatId, ReplyFormatter.UploadNeedsKeywords, ct);
+            return;
+        }
+
+        var id = await repository.AddAsync(extension, contentHash, keywords, ct);
         try
         {
             await images.SaveAsync(id, extension, new MemoryStream(content), ct);
