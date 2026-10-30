@@ -5,7 +5,8 @@ namespace MemeHelper.Api.Features.Memes;
 internal static class RemoveKeyword
 {
     public static void Map(RouteGroupBuilder group) =>
-        group.MapDelete("/{id:int}/keywords/{keyword}", Handle)
+        // catch-all 讓含 / 的關鍵字也刪得掉。
+        group.MapDelete("/{id:int}/keywords/{**keyword}", Handle)
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status404NotFound);
 

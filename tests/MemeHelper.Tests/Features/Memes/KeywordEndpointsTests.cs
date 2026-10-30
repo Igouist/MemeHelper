@@ -66,6 +66,18 @@ public sealed class KeywordEndpointsTests : IDisposable
     }
 
     [Fact]
+    public async Task RemoveKeyword_關鍵字含斜線_應回傳204且清單不含該字()
+    {
+        var meme = await client.UploadOkAsync(SampleImages.Png(), "a.png", "a/b,六點", Ct);
+
+        var response = await client.Http.DeleteAsync($"/api/memes/{meme.Id}/keywords/a/b", Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        var updated = await client.Http.GetFromJsonAsync<Meme>($"/api/memes/{meme.Id}", Ct);
+        updated!.Keywords.Should().Equal("六點");
+    }
+
+    [Fact]
     public async Task RemoveKeyword_關鍵字不存在_應回傳404()
     {
         var meme = await client.UploadOkAsync(SampleImages.Png(), "a.png", "六點", Ct);

@@ -48,6 +48,8 @@ app.Services.GetRequiredService<DatabaseMigrator>().Migrate();
 await app.Services.GetRequiredService<ContentHashBackfill>().RunAsync(CancellationToken.None);
 
 app.UseExceptionHandler();
+// 沒有 body 的 404 等狀態碼也轉成 ProblemDetails，和驗證錯誤、409 一致。
+app.UseStatusCodePages();
 // Swagger UI 就是第一版的管理後台，服務只在區網，所以不分環境一律開。
 app.UseSwagger();
 app.UseSwaggerUI();
