@@ -35,7 +35,8 @@ src/MemeHelper.Api/
   Database/             SqliteConnectionFactory、DatabaseMigrator（DbUp）、SqliteMemeRepository
   Migrations/           編號 SQL 檔，啟動時套用，已執行過的不可修改
   Telegram/             TelegramPollingService、IncomingMessage（訊息分類，純函式）、
-                        MemeBotHandler、ReplyFormatter、IBotMessenger 與其 Telegram.Bot 實作、
+                        KeywordCommand（/add、/del 解析，純函式）、MemeBotHandler、ReplyFormatter、
+                        IBotMessenger 與其 Telegram.Bot 實作、
                         LongPollingBotClient、PollingHealth（記最後一次 getUpdates 成功的時間）
   Backup/               DataBackup（快照、複製新圖、清舊快照）、BackupService（每 24 小時排程）
 tests/MemeHelper.Tests/ 對應上述結構；Support/ 放 ApiFactory、TempDatabase 等測試基礎
@@ -83,7 +84,7 @@ docs/                   設計、場景（Gherkin）、ADR、這份指南
 
 ## 測試
 
-- **單元**：`KeywordMatcher`、`KeywordNormalizer`、`ImageFileRules`、`ContentHash`、`IncomingMessage` 是純函式直接測；`MemeBotHandler` 用 NSubstitute 替換 repository、image store、messenger。
+- **單元**：`KeywordMatcher`、`KeywordNormalizer`、`ImageFileRules`、`ContentHash`、`IncomingMessage`、`KeywordCommand` 是純函式直接測；`MemeBotHandler` 用 NSubstitute 替換 repository、image store、messenger。
 - **整合**：`ApiFactory` 用 `WebApplicationFactory` 跑真的 Program，資料庫與圖片指到臨時資料夾，並拿掉 polling 的 hosted service，所以不會真的連 Telegram。
 - 測試名稱用三段式中文：`方法_情境_預期`，一個場景對一個測試。
 

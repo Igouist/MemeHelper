@@ -166,6 +166,99 @@ public class MemeBotHandlerTests
     }
 
     [Fact]
+    public async Task HandleTextAsync_add指令_應新增關鍵字並回更新後的清單()
+    {
+        ArrangeKeywordEdits();
+
+        await Handler().HandleTextAsync(Me, Chat, "/add 3 海螺、不行", Ct);
+
+        await repository.Received(1).AddKeywordsAsync(3, Arg.Is<IReadOnlyList<string>>(k => k.SequenceEqual(new[] { "海螺", "不行" })), Arg.Any<CancellationToken>());
+        await messenger.Received(1).SendTextAsync(Chat, "【3】神奇海螺,不行,海螺", Arg.Any<CancellationToken>());
+        log.Has(LogLevel.Information, "3").Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task HandleTextAsync_add指令編號不存在_應回沒有編號()
+    {
+        ArrangeKeywordEdits();
+
+        await Handler().HandleTextAsync(Me, Chat, "/add 99 海螺", Ct);
+
+        await messenger.Received(1).SendTextAsync(Chat, "沒有編號 99", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleTextAsync_add指令停用中的圖_應加註已停用()
+    {
+        ArrangeKeywordEdits();
+
+        await Handler().HandleTextAsync(Me, Chat, "/add 4 下班", Ct);
+
+        await messenger.Received(1).SendTextAsync(Chat, "【4】六點,已停用,下班（已停用）", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleTextAsync_del指令_應移除關鍵字並回更新後的清單()
+    {
+        ArrangeKeywordEdits();
+
+        await Handler().HandleTextAsync(Me, Chat, "/del 3 不行", Ct);
+
+        await repository.Received(1).RemoveKeywordAsync(3, "不行", Arg.Any<CancellationToken>());
+        await messenger.Received(1).SendTextAsync(Chat, "【3】神奇海螺", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleTextAsync_del指令有找不到的關鍵字_應移除找得到的並列出找不到的()
+    {
+        ArrangeKeywordEdits();
+
+        await Handler().HandleTextAsync(Me, Chat, "/del 3 不行,下班", Ct);
+
+        await messenger.Received(1).SendTextAsync(Chat, "【3】神奇海螺\n沒有這些關鍵字：下班", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleTextAsync_del指令移除最後一個關鍵字_應回沒有關鍵字()
+    {
+        ArrangeKeywordEdits();
+
+        await Handler().HandleTextAsync(Me, Chat, "/del 3 神奇海螺,不行", Ct);
+
+        await messenger.Received(1).SendTextAsync(Chat, "【3】（沒有關鍵字）", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleTextAsync_del指令編號不存在_應回沒有編號()
+    {
+        ArrangeKeywordEdits();
+
+        await Handler().HandleTextAsync(Me, Chat, "/del 99 海螺", Ct);
+
+        await messenger.Received(1).SendTextAsync(Chat, "沒有編號 99", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleTextAsync_指令格式不對_應回用法且不改資料()
+    {
+        await Handler().HandleTextAsync(Me, Chat, "/add 3", Ct);
+
+        await messenger.Received(1).SendTextAsync(Chat, ReplyFormatter.AddUsage, Arg.Any<CancellationToken>());
+        await repository.DidNotReceive().AddKeywordsAsync(Arg.Any<int>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleTextAsync_非白名單傳指令_不應呼叫messenger也不改資料()
+    {
+        ArrangeKeywordEdits();
+
+        await Handler().HandleTextAsync(Stranger, Chat, "/add 3 海螺", Ct);
+
+        messenger.ReceivedCalls().Should().BeEmpty();
+        await repository.DidNotReceive().AddKeywordsAsync(Arg.Any<int>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task HandleImageAsync_照片加caption_應新增並回覆編號且快取file_id()
     {
         ArrangeAdd("六點", "下班");
@@ -317,6 +410,42 @@ public class MemeBotHandlerTests
 
         messenger.ReceivedCalls().Should().BeEmpty();
         await repository.DidNotReceive().AddAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>讓 AddKeywordsAsync 與 RemoveKeywordAsync 真的改 library 裡的關鍵字，GetAsync 才讀得到結果。</summary>
+    private void ArrangeKeywordEdits()
+    {
+        repository.AddKeywordsAsync(Arg.Any<int>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                var index = library.FindIndex(m => m.Id == call.Arg<int>());
+                if (index < 0)
+                {
+                    return false;
+                }
+
+                var fresh = call.Arg<IReadOnlyList<string>>().Where(k => !library[index].Keywords.Contains(k, StringComparer.OrdinalIgnoreCase));
+                library[index] = library[index] with { Keywords = [.. library[index].Keywords, .. fresh] };
+                return true;
+            });
+        repository.RemoveKeywordAsync(Arg.Any<int>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                var index = library.FindIndex(m => m.Id == call.Arg<int>());
+                if (index < 0)
+                {
+                    return RemoveKeywordResult.MemeNotFound;
+                }
+
+                var remaining = library[index].Keywords.Where(k => !k.Equals(call.Arg<string>(), StringComparison.OrdinalIgnoreCase)).ToList();
+                if (remaining.Count == library[index].Keywords.Count)
+                {
+                    return RemoveKeywordResult.KeywordNotFound;
+                }
+
+                library[index] = library[index] with { Keywords = remaining };
+                return RemoveKeywordResult.Removed;
+            });
     }
 
     /// <summary>讓「下載到的預設 jpg」查重時命中這張。</summary>

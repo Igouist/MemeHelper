@@ -47,5 +47,35 @@ public class ReplyFormatterTests
         ReplyFormatter.FormatExists(meme).Should().Be("已存在【3】神奇海螺（已停用）");
     }
 
+    [Fact]
+    public void FormatKeywords_啟用中_應為編號加關鍵字()
+    {
+        ReplyFormatter.FormatKeywords(Meme(3, "神奇海螺", "不行")).Should().Be("【3】神奇海螺,不行");
+    }
+
+    [Fact]
+    public void FormatKeywords_停用中_應加註已停用()
+    {
+        ReplyFormatter.FormatKeywords(Meme(4, "六點") with { IsEnabled = false }).Should().Be("【4】六點（已停用）");
+    }
+
+    [Fact]
+    public void FormatKeywords_沒有關鍵字_應標示沒有關鍵字()
+    {
+        ReplyFormatter.FormatKeywords(Meme(3)).Should().Be("【3】（沒有關鍵字）");
+    }
+
+    [Fact]
+    public void FormatRemoved_全部找得到_應只回關鍵字清單()
+    {
+        ReplyFormatter.FormatRemoved(Meme(3, "神奇海螺"), []).Should().Be("【3】神奇海螺");
+    }
+
+    [Fact]
+    public void FormatRemoved_有找不到的_應在末尾加一行列出()
+    {
+        ReplyFormatter.FormatRemoved(Meme(3, "神奇海螺"), ["下班", "六點"]).Should().Be("【3】神奇海螺\n沒有這些關鍵字：下班,六點");
+    }
+
     private static Meme Meme(int id, params string[] keywords) => new(id, "png", true, null, keywords, Now, Now);
 }

@@ -31,6 +31,12 @@ public sealed class MemeBotHandler(
             return;
         }
 
+        if (KeywordCommand.TryParse(trimmed) is { } command)
+        {
+            await HandleCommandAsync(userId, chatId, command, ct);
+            return;
+        }
+
         // 純數字先當編號；查無此編號（或已停用）才落到關鍵字搜尋，這樣「2077」這種數字關鍵字也找得到。
         if (int.TryParse(trimmed, NumberStyles.None, CultureInfo.InvariantCulture, out var id)
             && await repository.GetAsync(id, ct) is { IsEnabled: true } byId)
@@ -148,6 +154,46 @@ public sealed class MemeBotHandler(
             "使用者 {UserId} 從 Telegram 新增編號 {Id}：{Keywords}（{Kind}）",
             userId, id, string.Join(",", keywords), isPhoto ? "照片" : "檔案");
         await messenger.SendTextAsync(chatId, ReplyFormatter.FormatAdded(meme!), ct);
+    }
+
+    private async Task HandleCommandAsync(long userId, long chatId, KeywordCommand command, CancellationToken ct)
+    {
+        switch (command)
+        {
+            case KeywordCommand.Invalid invalid:
+                await messenger.SendTextAsync(chatId, invalid.Usage, ct);
+                return;
+
+            case KeywordCommand.Add add:
+                if (!await repository.AddKeywordsAsync(add.MemeId, add.Keywords, ct))
+                {
+                    await messenger.SendTextAsync(chatId, string.Format(CultureInfo.InvariantCulture, ReplyFormatter.MemeNotFound, add.MemeId), ct);
+                    return;
+                }
+
+                logger.LogInformation("使用者 {UserId} 替編號 {Id} 新增關鍵字：{Keywords}", userId, add.MemeId, string.Join(",", add.Keywords));
+                await messenger.SendTextAsync(chatId, ReplyFormatter.FormatKeywords((await repository.GetAsync(add.MemeId, ct))!), ct);
+                return;
+
+            case KeywordCommand.Remove remove:
+                var missing = new List<string>();
+                foreach (var keyword in remove.Keywords)
+                {
+                    switch (await repository.RemoveKeywordAsync(remove.MemeId, keyword, ct))
+                    {
+                        case RemoveKeywordResult.MemeNotFound:
+                            await messenger.SendTextAsync(chatId, string.Format(CultureInfo.InvariantCulture, ReplyFormatter.MemeNotFound, remove.MemeId), ct);
+                            return;
+                        case RemoveKeywordResult.KeywordNotFound:
+                            missing.Add(keyword);
+                            break;
+                    }
+                }
+
+                logger.LogInformation("使用者 {UserId} 替編號 {Id} 移除關鍵字：{Keywords}", userId, remove.MemeId, string.Join(",", remove.Keywords));
+                await messenger.SendTextAsync(chatId, ReplyFormatter.FormatRemoved((await repository.GetAsync(remove.MemeId, ct))!, missing), ct);
+                return;
+        }
     }
 
     private async Task SendMemeAsync(long chatId, Meme meme, CancellationToken ct)
