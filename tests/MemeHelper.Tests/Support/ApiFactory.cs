@@ -18,6 +18,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
 
     public string ImageRoot => Path.Combine(temp.Path, "images");
 
+    public string BackupRoot => Path.Combine(temp.Path, "backup");
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         // 用 ConfigureAppConfiguration 而非 UseSetting：Program 之後還會 AddJsonFile("appsettings.Local.json")，
@@ -26,6 +28,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         {
             ["Database:ConnectionString"] = $"Data Source={Path.Combine(temp.Path, "test.db")}",
             ["Storage:ImageRoot"] = ImageRoot,
+            ["Backup:Directory"] = BackupRoot,
             ["Telegram:BotToken"] = "123456789:AAFakeTokenForTests-0123456789abcdefg",
             ["Telegram:AllowedUserIds:0"] = "1",
         }));

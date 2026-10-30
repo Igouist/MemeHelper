@@ -123,6 +123,14 @@
 - 查重不分啟用停用。重複時回既有編號與關鍵字，不新增、不合併關鍵字。
 - 升級前的梗圖沒有雜湊，服務啟動時從圖片檔補算一次。補算時若發現兩張舊圖內容相同，後面那張的雜湊留空並記 Warning，請使用者自己刪一張。
 
+### 5.6 服務狀態
+
+`GET /api/status` 一眼看出服務活著沒有，不必翻 log：
+
+- `memeCount`、`enabledCount`：梗圖總數與啟用中的數量。
+- `lastPollingSuccessAt`：最後一次 `getUpdates` 成功的時間。閒置時每 90 秒也會成功一次，所以這個時間超過幾分鐘沒動就是 polling 斷了。啟動後還沒成功過為 null。
+- `lastBackupAt`：最新一份資料庫快照的時間；沒設定備份為 null。
+
 ## 6. 技術決策
 
 每項的理由與放棄的替代方案見 `docs/adr/`。
@@ -200,6 +208,7 @@ src/MemeHelper.Api/
   Features/
     Memes/        上傳、列表、取圖、關鍵字、停用、啟用、刪除，一個 endpoint 一個檔案
     Search/       比對邏輯，Telegram 與管理 API 共用
+    Status/       服務狀態
   Telegram/       polling hosted service、訊息處理、回覆格式
   Database/       連線工廠、DbUp migrator、Dapper repository
   Backup/         每日備份：資料庫快照、複製新圖、清舊快照
@@ -224,6 +233,7 @@ docs/
 | POST | `/api/memes/{id}/disable` | 停用 |
 | POST | `/api/memes/{id}/enable` | 啟用 |
 | DELETE | `/api/memes/{id}` | 刪除 |
+| GET | `/api/status` | 梗圖數、最後一次 polling 成功時間、最後一次備份時間 |
 
 錯誤回應用 ProblemDetails。
 

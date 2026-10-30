@@ -3,6 +3,7 @@ using MemeHelper.Api.Configuration;
 using MemeHelper.Api.Database;
 using MemeHelper.Api.Features.Memes;
 using MemeHelper.Api.Features.Search;
+using MemeHelper.Api.Features.Status;
 using MemeHelper.Api.Telegram;
 using Microsoft.Extensions.Options;
 using Telegram.Bot;
@@ -27,8 +28,9 @@ builder.Services.AddSingleton<MemeSearch>();
 builder.Services.AddSingleton<IImageStore, FileSystemImageStore>();
 builder.Services.AddSingleton<ContentHashBackfill>();
 
+builder.Services.AddSingleton<PollingHealth>();
 builder.Services.AddSingleton<ITelegramBotClient>(sp =>
-    new LongPollingBotClient(sp.GetRequiredService<IOptions<TelegramOptions>>().Value.BotToken));
+    new LongPollingBotClient(sp.GetRequiredService<IOptions<TelegramOptions>>().Value.BotToken, sp.GetRequiredService<PollingHealth>()));
 builder.Services.AddSingleton<IBotMessenger, TelegramBotMessenger>();
 builder.Services.AddSingleton<MemeBotHandler>();
 builder.Services.AddHostedService<TelegramPollingService>();
@@ -51,6 +53,7 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.MapMemeEndpoints();
+GetStatus.Map(app);
 
 app.Run();
 

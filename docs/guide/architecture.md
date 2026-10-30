@@ -31,11 +31,12 @@ src/MemeHelper.Api/
                         以及 UploadMeme、ListMemes、GetMeme、GetMemeImage、AddKeywords、
                         RemoveKeyword、DisableMeme、EnableMeme、DeleteMeme 九個 endpoint
   Features/Search/      KeywordMatcher（純函式）、MemeSearch
+  Features/Status/      GetStatus：梗圖數、最後一次 polling 成功與備份的時間
   Database/             SqliteConnectionFactory、DatabaseMigrator（DbUp）、SqliteMemeRepository
   Migrations/           編號 SQL 檔，啟動時套用，已執行過的不可修改
   Telegram/             TelegramPollingService、IncomingMessage（訊息分類，純函式）、
                         MemeBotHandler、ReplyFormatter、IBotMessenger 與其 Telegram.Bot 實作、
-                        LongPollingBotClient
+                        LongPollingBotClient、PollingHealth（記最後一次 getUpdates 成功的時間）
   Backup/               DataBackup（快照、複製新圖、清舊快照）、BackupService（每 24 小時排程）
 tests/MemeHelper.Tests/ 對應上述結構；Support/ 放 ApiFactory、TempDatabase 等測試基礎
 deploy/                 systemd unit 範本

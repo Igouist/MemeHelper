@@ -63,7 +63,7 @@ dotnet run --project src/MemeHelper.Api
 
    `enable-linger` 不能省，否則登出就停、開機也不會自動起來。
 
-6. 確認：`systemctl --user status memehelper`，log 用 `journalctl --user -u memehelper -f`。
+6. 確認：`systemctl --user status memehelper`，log 用 `journalctl --user -u memehelper -f`。`curl http://localhost:5090/api/status` 會回梗圖數、最後一次 polling 成功時間與最後一次備份時間，`lastPollingSuccessAt` 超過幾分鐘沒更新就是 polling 斷了。
 
 更新版本：
 
