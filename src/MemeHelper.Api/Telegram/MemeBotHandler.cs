@@ -18,8 +18,7 @@ public sealed class MemeBotHandler(
 {
     public async Task HandleTextAsync(long userId, long chatId, string text, CancellationToken ct)
     {
-        // 非白名單一律沉默，連「無權限」都不回，免得暴露這裡有個 bot 在聽。
-        if (!telegram.Value.AllowedUserIds.Contains(userId))
+        if (!IsAllowed(userId))
         {
             return;
         }
@@ -75,7 +74,7 @@ public sealed class MemeBotHandler(
     public async Task HandleImageAsync(
         long userId, long chatId, string fileId, string? fileName, bool isPhoto, string? caption, CancellationToken ct)
     {
-        if (!telegram.Value.AllowedUserIds.Contains(userId))
+        if (!IsAllowed(userId))
         {
             return;
         }
@@ -134,9 +133,9 @@ public sealed class MemeBotHandler(
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            // 存檔失敗就不能留下沒有圖的紀錄。
+            // 存檔失敗就不能留下沒有圖的紀錄。補償不帶 ct：取消時更要清乾淨。
             logger.LogError(ex, "儲存編號 {Id} 的圖片失敗", id);
-            await repository.DeleteAsync(id, ct);
+            await repository.DeleteAsync(id, CancellationToken.None);
             images.Delete(id, extension);
             await messenger.SendTextAsync(chatId, ReplyFormatter.UploadFailed, ct);
             return;
@@ -154,6 +153,18 @@ public sealed class MemeBotHandler(
             "使用者 {UserId} 從 Telegram 新增編號 {Id}：{Keywords}（{Kind}）",
             userId, id, string.Join(",", keywords), isPhoto ? "照片" : "檔案");
         await messenger.SendTextAsync(chatId, ReplyFormatter.FormatAdded(meme!), ct);
+    }
+
+    /// <summary>非白名單一律沉默，連「無權限」都不回，免得暴露這裡有個 bot 在聽；只記 log 讓自己知道有人來過。</summary>
+    private bool IsAllowed(long userId)
+    {
+        if (telegram.Value.AllowedUserIds.Contains(userId))
+        {
+            return true;
+        }
+
+        logger.LogWarning("忽略非白名單使用者 {UserId} 的訊息", userId);
+        return false;
     }
 
     private async Task HandleCommandAsync(long userId, long chatId, KeywordCommand command, CancellationToken ct)
@@ -221,21 +232,31 @@ public sealed class MemeBotHandler(
             return;
         }
 
+        string newFileId;
         try
         {
-            string newFileId;
             await using (stream)
             {
                 newFileId = await messenger.SendPhotoFileAsync(chatId, stream, $"{meme.Id}.{meme.Extension}", ct);
             }
 
-            await repository.SetTelegramFileIdAsync(meme.Id, newFileId, ct);
-            logger.LogInformation("編號 {Id} 上傳回圖並快取 file_id", meme.Id);
+            logger.LogInformation("編號 {Id} 上傳回圖", meme.Id);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogError(ex, "編號 {Id} 送圖失敗", meme.Id);
             await messenger.SendTextAsync(chatId, ReplyFormatter.SendFailed, ct);
+            return;
+        }
+
+        // 圖已經送到了，快取 file_id 失敗只影響下次要不要重新上傳，不能回「送圖失敗」。
+        try
+        {
+            await repository.SetTelegramFileIdAsync(meme.Id, newFileId, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "編號 {Id} 的 file_id 快取失敗，下次查詢會再上傳一次", meme.Id);
         }
     }
 }

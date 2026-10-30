@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
@@ -20,6 +21,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
 
     public string BackupRoot => Path.Combine(temp.Path, "backup");
 
+    /// <summary>測試要換掉某個服務（例如用會失敗的 IImageStore）時從這裡接。</summary>
+    public Action<IServiceCollection>? ConfigureServices { get; init; }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         // 用 ConfigureAppConfiguration 而非 UseSetting：Program 之後還會 AddJsonFile("appsettings.Local.json")，
@@ -33,7 +37,11 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
             ["Telegram:AllowedUserIds:0"] = "1",
         }));
 
-        builder.ConfigureTestServices(services => services.RemoveAll<IHostedService>());
+        builder.ConfigureTestServices(services =>
+        {
+            services.RemoveAll<IHostedService>();
+            ConfigureServices?.Invoke(services);
+        });
     }
 
     protected override void Dispose(bool disposing)

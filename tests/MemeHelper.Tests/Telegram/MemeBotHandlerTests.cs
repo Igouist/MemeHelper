@@ -58,6 +58,22 @@ public class MemeBotHandlerTests
     }
 
     [Fact]
+    public async Task HandleTextAsync_非白名單使用者_應記錄警告含使用者編號()
+    {
+        await Handler().HandleTextAsync(Stranger, Chat, "六點", Ct);
+
+        log.Has(LogLevel.Warning, Stranger.ToString()).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task HandleImageAsync_非白名單使用者_應記錄警告含使用者編號()
+    {
+        await Handler().HandleImageAsync(Stranger, Chat, "PHOTO_ID", null, isPhoto: true, "六點", Ct);
+
+        log.Has(LogLevel.Warning, Stranger.ToString()).Should().BeTrue();
+    }
+
+    [Fact]
     public async Task HandleTextAsync_傳送start_應回覆Help()
     {
         await Handler().HandleTextAsync(Me, Chat, "/start", Ct);
@@ -144,6 +160,39 @@ public class MemeBotHandlerTests
 
         await messenger.Received(1).SendPhotoFileAsync(Chat, Arg.Any<Stream>(), "3.png", Arg.Any<CancellationToken>());
         await repository.Received(1).SetTelegramFileIdAsync(3, "NEW_FILE_ID", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleTextAsync_送圖成功但存file_id失敗_不應回送圖失敗只記警告()
+    {
+        repository.SetTelegramFileIdAsync(3, "NEW_FILE_ID", Arg.Any<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException("database is locked"));
+
+        await Handler().HandleTextAsync(Me, Chat, "3", Ct);
+
+        await messenger.Received(1).SendPhotoFileAsync(Chat, Arg.Any<Stream>(), "3.png", Arg.Any<CancellationToken>());
+        await messenger.DidNotReceive().SendTextAsync(Arg.Any<long>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        log.Has(LogLevel.Warning, "3").Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task HandleTextAsync_送圖拋例外_應回SendFailed()
+    {
+        messenger.SendPhotoFileAsync(Chat, Arg.Any<Stream>(), "3.png", Arg.Any<CancellationToken>())
+            .ThrowsAsync(new HttpRequestException("boom"));
+
+        await Handler().HandleTextAsync(Me, Chat, "3", Ct);
+
+        await messenger.Received(1).SendTextAsync(Chat, ReplyFormatter.SendFailed, Arg.Any<CancellationToken>());
+        await repository.DidNotReceive().SetTelegramFileIdAsync(Arg.Any<int>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleTextAsync_傳送help_應回覆Help()
+    {
+        await Handler().HandleTextAsync(Me, Chat, "/help", Ct);
+
+        await messenger.Received(1).SendTextAsync(Chat, ReplyFormatter.Help, Arg.Any<CancellationToken>());
     }
 
     [Fact]

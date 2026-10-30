@@ -62,8 +62,9 @@ internal static class UploadMeme
         }
         catch
         {
-            // 檔案沒存成功就不該留下一筆沒有圖的紀錄。
-            await repository.DeleteAsync(id, ct);
+            // 檔案沒存成功就不該留下一筆沒有圖的紀錄，也不留寫到一半的檔。補償不帶 ct：取消時更要清乾淨。
+            await repository.DeleteAsync(id, CancellationToken.None);
+            images.Delete(id, extension);
             throw;
         }
 
