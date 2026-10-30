@@ -7,7 +7,7 @@ public static class ReplyFormatter
 {
     public const string NotFound = "找不到";
     public const string Help = "傳關鍵字找梗圖，多個詞用空白隔開；命中多張時會列清單，再傳編號取圖。\n"
-        + "傳圖加說明文字可新增梗圖；/add 編號 關鍵字 與 /del 編號 關鍵字 可修改關鍵字。";
+        + "傳圖加說明文字可新增梗圖；/info 編號 看關鍵字，/add 編號 關鍵字 與 /del 編號 關鍵字 修改關鍵字。";
     public const string ImageMissing = "圖片檔不見了，請到後台檢查編號 {0}";
     public const string SendFailed = "送圖失敗，請稍後再試";
     public const string UploadNeedsKeywords = "請在圖片的說明文字填關鍵字，用逗號或頓號隔開";
@@ -15,6 +15,7 @@ public static class ReplyFormatter
     public const string UploadTooLarge = "檔案超過 10 MB";
     public const string UploadBadContent = "檔案內容不是 {0}";
     public const string UploadFailed = "上傳失敗，請稍後再試";
+    public const string InfoUsage = "用法：/info 編號";
     public const string AddUsage = "用法：/add 編號 關鍵字1,關鍵字2";
     public const string DelUsage = "用法：/del 編號 關鍵字1,關鍵字2";
     public const string MemeNotFound = "沒有編號 {0}";

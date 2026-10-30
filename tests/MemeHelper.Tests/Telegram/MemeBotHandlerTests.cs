@@ -215,6 +215,32 @@ public class MemeBotHandlerTests
     }
 
     [Fact]
+    public async Task HandleTextAsync_info指令_應回該編號目前的關鍵字()
+    {
+        await Handler().HandleTextAsync(Me, Chat, "/info 3", Ct);
+
+        await messenger.Received(1).SendTextAsync(Chat, "【3】神奇海螺,不行", Arg.Any<CancellationToken>());
+        await messenger.DidNotReceive().SendPhotoByFileIdAsync(Arg.Any<long>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await messenger.DidNotReceive().SendPhotoFileAsync(Arg.Any<long>(), Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleTextAsync_info指令停用中的圖_應加註已停用()
+    {
+        await Handler().HandleTextAsync(Me, Chat, "/info 4", Ct);
+
+        await messenger.Received(1).SendTextAsync(Chat, "【4】六點,已停用（已停用）", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleTextAsync_info指令編號不存在_應回沒有編號()
+    {
+        await Handler().HandleTextAsync(Me, Chat, "/info 99", Ct);
+
+        await messenger.Received(1).SendTextAsync(Chat, "沒有編號 99", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task HandleTextAsync_add指令_應新增關鍵字並回更新後的清單()
     {
         ArrangeKeywordEdits();

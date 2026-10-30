@@ -26,6 +26,21 @@ public class KeywordCommandTests
         remove.Keywords.Should().Equal("下班", "不行");
     }
 
+    [Fact]
+    public void TryParse_info加編號_應為Show()
+    {
+        KeywordCommand.TryParse("/info 4").Should().Be(new KeywordCommand.Show(4));
+    }
+
+    [Theory]
+    [InlineData("/info")]
+    [InlineData("/info x")]
+    [InlineData("/info 4 下班")]
+    public void TryParse_info格式不對_應為Invalid並附用法(string text)
+    {
+        KeywordCommand.TryParse(text).Should().Be(new KeywordCommand.Invalid(ReplyFormatter.InfoUsage));
+    }
+
     [Theory]
     [InlineData("六點 下班")]
     [InlineData("/help")]

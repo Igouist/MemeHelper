@@ -175,6 +175,13 @@ public sealed class MemeBotHandler(
                 await messenger.SendTextAsync(chatId, invalid.Usage, ct);
                 return;
 
+            case KeywordCommand.Show show:
+                var reply = await repository.GetAsync(show.MemeId, ct) is { } meme
+                    ? ReplyFormatter.FormatKeywords(meme)
+                    : string.Format(CultureInfo.InvariantCulture, ReplyFormatter.MemeNotFound, show.MemeId);
+                await messenger.SendTextAsync(chatId, reply, ct);
+                return;
+
             case KeywordCommand.Add add:
                 if (!await repository.AddKeywordsAsync(add.MemeId, add.Keywords, ct))
                 {
