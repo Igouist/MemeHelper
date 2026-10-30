@@ -32,8 +32,9 @@ src/MemeHelper.Api/
   Features/Search/      KeywordMatcher（純函式）、MemeSearch
   Database/             SqliteConnectionFactory、DatabaseMigrator（DbUp）、SqliteMemeRepository
   Migrations/           編號 SQL 檔，啟動時套用，已執行過的不可修改
-  Telegram/             TelegramPollingService、MemeBotHandler、ReplyFormatter、
-                        IBotMessenger 與其 Telegram.Bot 實作、LongPollingBotClient
+  Telegram/             TelegramPollingService、IncomingMessage（訊息分類，純函式）、
+                        MemeBotHandler、ReplyFormatter、IBotMessenger 與其 Telegram.Bot 實作、
+                        LongPollingBotClient
   Backup/               DataBackup（快照、複製新圖、清舊快照）、BackupService（每 24 小時排程）
 tests/MemeHelper.Tests/ 對應上述結構；Support/ 放 ApiFactory、TempDatabase 等測試基礎
 deploy/                 systemd unit 範本
@@ -44,7 +45,7 @@ docs/                   設計、場景（Gherkin）、ADR、這份指南
 
 使用者傳「六點 下班」：
 
-1. `TelegramPollingService` 收到 `Update`，確認是文字，呼叫 `MemeBotHandler.HandleTextAsync`。
+1. `TelegramPollingService` 收到 `Update`，交給 `IncomingMessage.From` 分類：文字是查詢，照片與檔案是新增，其他忽略。文字就呼叫 `MemeBotHandler.HandleTextAsync`。
 2. Handler 先看 user id 是否在白名單，不在就沉默。
 3. 純數字先當編號查；否則 `MemeSearch.FindAsync`：整批讀出啟用中的梗圖，用 `KeywordMatcher` 過濾。規則是每個詞都要有任一關鍵字包含它（子字串，英文不分大小寫）。
 4. 命中一張就回圖：有 `file_id` 快取就用它重送；沒有就從 `IImageStore` 讀檔上傳，再把 Telegram 回的 `file_id` 存起來。命中多張回清單，零張回「找不到」。
@@ -80,7 +81,7 @@ docs/                   設計、場景（Gherkin）、ADR、這份指南
 
 ## 測試
 
-- **單元**：`KeywordMatcher`、`KeywordNormalizer`、`ImageFileRules` 是純函式直接測；`MemeBotHandler` 用 NSubstitute 替換 repository、image store、messenger。
+- **單元**：`KeywordMatcher`、`KeywordNormalizer`、`ImageFileRules`、`IncomingMessage` 是純函式直接測；`MemeBotHandler` 用 NSubstitute 替換 repository、image store、messenger。
 - **整合**：`ApiFactory` 用 `WebApplicationFactory` 跑真的 Program，資料庫與圖片指到臨時資料夾，並拿掉 polling 的 hosted service，所以不會真的連 Telegram。
 - 測試名稱用三段式中文：`方法_情境_預期`，一個場景對一個測試。
 
